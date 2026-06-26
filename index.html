@@ -323,7 +323,6 @@
   // ↓ここにデプロイしたGASの「.../exec」のURLを貼っておくと、
   // 誰がこのページを開いても自動的に接続されます（端末ごとの設定が不要になります）
   const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxa3x-r1Bnp0QLJbBQ25UtvfXThAnHwX6-6OQtF1ZovJrbzQe4c3gqOy8okJZ2oa3t28w/exec";
-  const POLL_INTERVAL_MS = 180000;
 
   let data = { companies: [], homes: [], posts: [] };
   let openCompanyIds = new Set();
@@ -1201,7 +1200,6 @@
   renderTop();
   if(gasUrl){
     refreshFromSheet(false);
-    setInterval(()=>refreshFromSheet(true), POLL_INTERVAL_MS);
   }
 })();
 </script>
