@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>グループホーム空室情報</title>
+<style>
+  :root{
+    --navy:#1F3864;
+    --navy-light:#2E5396;
+    --bg:#F4F6FA;
+    --card:#FFFFFF;
+    --gray:#E0E0E0;
+    --textmain:#222;
+    --textsub:#777;
+    --green:#2E8B57;
+    --green-bg:#E8F5EC;
+    --red:#C0392B;
+    --red-bg:#FBEAE8;
+    --yellow-bg:#FFF7E0;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
+    background:var(--bg); color:var(--textmain); padding-bottom:90px;
+  }
+  header{
+    background:var(--navy); color:#fff; padding:16px 16px 14px;
+    position:sticky; top:0; z-index:50;
+  }
+  header h1{margin:0; font-size:17px; font-weight:600; letter-spacing:.5px;}
+  header .sub{font-size:11px; opacity:.8; margin-top:2px; display:flex; align-items:center; gap:6px;}
+  .dot{width:7px; height:7px; border-radius:50%; background:#888; flex-shrink:0;}
+  .dot.ok{background:#5FD68C;}
+  .dot.busy{background:#F4C95D;}
+  .dot.err{background:#E06B6B;}
+
+  .tabs{
+    display:flex; position:fixed; bottom:0; left:0; right:0; background:#fff;
+    border-top:1px solid #ddd; z-index:60; padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tab{
+    flex:1; text-align:center; padding:10px 0 8px; font-size:12px; color:#999;
+    display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
+    user-select:none;
+  }
+  .tab .ic{font-size:20px;}
+  .tab.active{color:var(--navy); font-weight:600;}
+
+  .screen{display:none; padding:14px 14px 10px; max-width:560px; margin:0 auto;}
+  .screen.active{display:block;}
+
+  /* ---- トップ画面 ---- */
+  .company-card{
+    background:var(--card); border-radius:var(--radius); margin-bottom:12px;
+    box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden;
+  }
+  .company-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 16px; cursor:pointer;
+  }
+  .company-name{font-size:15px; font-weight:700; color:var(--navy);}
+  .company-vacancy{font-size:12px; margin-top:3px; color:var(--textsub);}
+  .company-vacancy b{color:var(--red); font-size:14px;}
+  .company-phone{font-size:11.5px; color:var(--textsub); margin-top:2px;}
+  .company-phone a{color:var(--navy-light); text-decoration:none;}
+  .company-updated{font-size:10.5px; color:#aaa; margin-top:3px;}
+  .contact-label{
+    font-size:11px; color:#999; font-weight:600; padding:12px 16px 4px;
+  }
+  .contact-chips{
+    display:flex; flex-direction:column; gap:6px;
+    padding:0 16px 10px;
+  }
+  .contact-chip{
+    font-size:11px; color:var(--textsub); background:#F2F4F8; border-radius:10px;
+    padding:6px 10px; white-space:normal; align-self:flex-start;
+  }
+  .contact-chip a{color:var(--navy-light); text-decoration:none; font-weight:600;}
+  .chevron{transition:transform .25s cubic-bezier(.4,0,.2,1); color:#aaa; font-size:14px;}
+  .company-card.open .chevron{transform:rotate(90deg);}
+  .home-list{
+    border-top:1px solid #eee; overflow:hidden; max-height:0;
+    transition:max-height .3s cubic-bezier(.4,0,.2,1);
+  }
+  .home-row{
+    display:flex; flex-direction:column; gap:6px;
+    padding:11px 16px; font-size:13.5px; border-bottom:1px solid #f2f2f2;
+  }
+  .home-row-top{display:flex; justify-content:space-between; align-items:center;}
+  .home-address{
+    font-size:11.5px; color:var(--textsub);
+  }
+  .home-notes{
+    font-size:11.5px; color:var(--textsub); background:#F7F8FA; border-radius:7px;
+    padding:7px 9px; white-space:pre-wrap; line-height:1.5;
+  }
+  .home-row:last-child{border-bottom:none;}
+  .home-left{display:flex; align-items:center; gap:8px;}
+  .gender-badge{
+    font-size:10.5px; padding:2px 6px; border-radius:6px; color:#fff; flex-shrink:0;
+  }
+  .gender-male{background:#5B8DEF;}
+  .gender-female{background:#E87FA0;}
+  .gender-any{background:#9B7FD4;}
+  .home-name{font-weight:600;}
+  .status-pill{
+    font-size:11.5px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;
+  }
+  .status-vacant{background:var(--green-bg); color:var(--green);}
+  .status-full{background:var(--red-bg); color:var(--red);}
+  .home-count{font-size:11.5px; color:var(--textsub); margin-left:6px;}
+
+  .empty-msg{text-align:center; color:#999; font-size:13px; padding:40px 0; line-height:1.7;}
+
+  .sort-bar{
+    display:flex; gap:8px; margin-bottom:12px;
+  }
+  .sort-btn{
+    flex:1; padding:8px 0; border-radius:9px; font-size:12.5px; border:1px solid #ddd;
+    background:#fff; color:#888; cursor:pointer;
+  }
+  .sort-btn.active{
+    background:var(--navy); color:#fff; border-color:var(--navy); font-weight:600;
+  }
+
+  /* ---- 掲示板 ---- */
+  .board-post{
+    background:var(--card); border-radius:var(--radius); padding:14px 16px; margin-bottom:10px;
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .board-meta{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+  .board-company{font-size:12px; font-weight:700; color:var(--navy); background:var(--yellow-bg); padding:2px 8px; border-radius:6px;}
+  .board-date{font-size:11px; color:var(--textsub);}
+  .board-text{font-size:14px; line-height:1.6; white-space:pre-wrap;}
+  .board-author{font-size:11.5px; color:var(--textsub); margin-top:8px; text-align:right;}
+
+  /* ---- 編集画面 ---- */
+  .edit-section{
+    background:var(--card); border-radius:var(--radius); padding:16px; margin-bottom:14px;
+    box-shadow:0 1px 4px rgba(0,0,0,.06);
+  }
+  .edit-section h3{margin:0 0 12px; font-size:14px; color:var(--navy); border-bottom:2px solid var(--navy); padding-bottom:6px;}
+  label{display:block; font-size:12px; color:var(--textsub); margin:10px 0 4px;}
+  input[type=text], input[type=number], input[type=url], select, textarea{
+    width:100%; padding:10px 11px; border:1px solid #ddd; border-radius:9px; font-size:14px;
+    background:#fafafa; font-family:inherit;
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row2{display:flex; gap:10px;}
+  .row2 > div{flex:1;}
+
+  .btn{
+    display:block; width:100%; text-align:center; padding:12px 0; border-radius:10px;
+    background:var(--navy); color:#fff; font-size:14px; font-weight:600; border:none;
+    margin-top:14px; cursor:pointer;
+  }
+  .btn:active{opacity:.85;}
+  .btn-outline{background:#fff; color:var(--navy); border:1.5px solid var(--navy);}
+  .home-edit-item{
+    border:1px solid #eee; border-radius:10px; padding:12px; margin-top:10px; position:relative; background:#fcfcfc;
+  }
+  .home-edit-item .del-x{
+    position:absolute; top:8px; right:10px; color:#bbb; font-size:18px; cursor:pointer; line-height:1;
+  }
+  .small-gray{font-size:11px; color:#999; margin-top:4px;}
+  .home-edit-item.draft-item{
+    border:1.5px dashed var(--navy-light); background:#F5F8FD;
+  }
+
+  .post-edit-row{
+    display:flex; justify-content:flex-end; gap:8px; margin-top:8px;
+  }
+  .icon-btn{
+    font-size:11.5px; color:var(--navy-light); background:none; border:1px solid #ccd6e6; border-radius:7px;
+    padding:4px 10px; cursor:pointer;
+  }
+  .icon-btn.danger{color:var(--red); border-color:#e6c9c4;}
+  .icon-btn-lg{
+    font-size:15px; font-weight:700; padding:11px 26px; border-radius:9px;
+    background:var(--navy); color:#fff; border:none;
+  }
+
+  .company-block{
+    border-top:3px solid var(--navy); padding-top:0; margin-top:18px; overflow:hidden;
+  }
+  .company-block-title{
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    padding:10px 0;
+  }
+  .company-block-title h3{border:none; margin:0; padding:0;}
+  .section-label{
+    font-size:18px; color:#fff; font-weight:800; margin:22px 0 10px; letter-spacing:1px;
+    background:var(--navy); padding:10px 14px; border-radius:10px; text-align:center;
+  }
+  .company-block-title-right{display:flex; align-items:center; gap:10px;}
+  .chevron-edit{
+    transition:transform .25s cubic-bezier(.4,0,.2,1); color:#aaa; font-size:14px; flex-shrink:0;
+  }
+  .company-block.open .chevron-edit{transform:rotate(90deg);}
+  .company-edit-body{
+    overflow:hidden; max-height:0;
+    transition:max-height .3s cubic-bezier(.4,0,.2,1);
+  }
+  .company-info-edit{padding-bottom:6px;}
+  .collapsible-body{
+    overflow:hidden; max-height:0;
+    transition:max-height .3s cubic-bezier(.4,0,.2,1);
+  }
+  .home-list-divider{height:1px; background:#eee; margin:14px 0 4px;}
+
+  .setup-banner{
+    background:#FFF3CD; border:1px solid #F0D58C; border-radius:12px; padding:14px; margin-bottom:14px; font-size:12.5px; line-height:1.7;
+  }
+  .setup-banner b{color:#8a6d1d;}
+
+  /* モーダル */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{ background:#fff; border-radius:14px; padding:20px; max-width:340px; width:100%; }
+  .modal-box p{font-size:14px; line-height:1.6; margin:0 0 16px;}
+  .modal-actions{display:flex; gap:10px;}
+  .modal-actions button{ flex:1; padding:10px 0; border-radius:9px; font-size:13.5px; border:none; cursor:pointer; }
+  .modal-cancel{background:#eee; color:#555;}
+  .modal-confirm{background:var(--red); color:#fff;}
+
+  .toast{
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+    background:#333; color:#fff; padding:9px 18px; border-radius:20px; font-size:13px;
+    z-index:200; opacity:0; transition:opacity .25s; pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>グループホーム空室情報</h1>
+  <div class="sub"><span class="dot" id="connDot"></span><span id="headerSub">読み込み中…</span></div>
+</header>
+
+<div class="screen active" id="screen-top">
+  <div class="sort-bar">
+    <button class="sort-btn" data-sort="alpha">アルファベット順</button>
+    <button class="sort-btn" data-sort="vacancy">空室順</button>
+  </div>
+  <div id="topList"></div>
+</div>
+
+<div class="screen" id="screen-board">
+  <div class="edit-section">
+    <button class="btn" id="toggleAddPostBtn">＋投稿する</button>
+    <div class="collapsible-body" id="addPostBody">
+      <label>法人名</label>
+      <select id="postCompany"></select>
+      <label>担当者名</label>
+      <input type="text" id="postAuthor" placeholder="例：吉川">
+      <label>本文</label>
+      <textarea id="postText" placeholder="皆に伝えたいことを入力"></textarea>
+      <button class="btn" id="addPostBtn">投稿する</button>
+    </div>
+  </div>
+  <div id="boardList"></div>
+</div>
+
+<div class="screen" id="screen-edit">
+
+  <div class="setup-banner" id="setupBanner" style="display:none;">
+    <b>初回設定</b><br>
+    GASのウェブアプリURL（末尾が <code>/exec</code>）をここに貼り付けてください。スプレッドシートと連携されます。
+    <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:8px;">
+    <button class="btn" id="saveGasUrlBtn">保存して接続</button>
+  </div>
+
+  <div class="edit-section" id="connSettingsSection" style="display:none;">
+    <h3>連携設定</h3>
+    <div class="small-gray" id="currentGasUrlText" style="word-break:break-all;"></div>
+    <button class="icon-btn" id="changeGasUrlBtn" style="margin-top:8px;">URLを変更する</button>
+  </div>
+
+  <div class="edit-section">
+    <button class="btn" id="toggleAddCompanyBtn">＋法人を追加</button>
+    <div class="collapsible-body" id="addCompanyBody">
+      <label>法人名</label>
+      <input type="text" id="newCompanyName" placeholder="例：会社A">
+      <label>代表（問い合わせ先）電話番号</label>
+      <input type="text" id="newCompanyPhone" placeholder="例：048-000-0000" inputmode="tel">
+      <label>担当者</label>
+      <input type="text" id="newCompanyContact" placeholder="例：吉川">
+      <button class="btn" id="addCompanyBtn">法人を追加</button>
+    </div>
+  </div>
+
+  <h3 class="section-label">【法人リスト】</h3>
+  <div id="companyEditList"></div>
+
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-screen="top"><span class="ic">🏠</span>トップ</div>
+  <div class="tab" data-screen="board"><span class="ic">📝</span>一言掲示板</div>
+  <div class="tab" data-screen="edit"><span class="ic">⚙️</span>編集</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <p id="modalText">削除しますか？</p>
+    <div class="modal-actions">
+      <button class="modal-cancel" id="modalCancel">キャンセル</button>
+      <button class="modal-confirm" id="modalConfirm">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  const LOCAL_CACHE_KEY = "gh_vacancy_cache_v1";
+  const GAS_URL_KEY = "gh_gas_url";
+  // ↓ここにデプロイしたGASの「.../exec」のURLを貼っておくと、
+  // 誰がこのページを開いても自動的に接続されます（端末ごとの設定が不要になります）
+  const DEFAULT_GAS_URL = "";
+  const POLL_INTERVAL_MS = 30000;
+
+  let data = { companies: [], homes: [], posts: [] };
+  let openCompanyIds = new Set();
+  let openEditCompanyIds = new Set();
+  let openEditPostIds = new Set(); // 編集中の投稿ID
+  let draftHomes = []; // 登録ボタンを押すまで保存されない新規ホームの仮データ
+  let sortMode = localStorage.getItem("gh_sort_mode") || "alpha";
+  const collatorJa = new Intl.Collator("ja");
+
+  // タップ操作でフォーカスが移動し、ブラウザが自動スクロールするより前の
+  // スクロール位置を記録しておく（click発火時には既に動いてしまっている事があるため）
+  let preTapScrollY = window.scrollY;
+  ["touchstart", "pointerdown", "mousedown"].forEach(evt=>{
+    document.addEventListener(evt, ()=>{ preTapScrollY = window.scrollY; }, { passive: true, capture: true });
+  });
+
+  // 再描画でページが先頭に飛ばないよう、スクロール位置を強めに復元する
+  function preserveScroll(renderFn){
+    const scrollY = preTapScrollY;
+    renderFn();
+    const restore = () => {
+      if(Math.abs(window.scrollY - scrollY) > 2) window.scrollTo(0, scrollY);
+    };
+    restore();
+    requestAnimationFrame(restore);
+    setTimeout(restore, 60);
+    setTimeout(restore, 200);
+    setTimeout(restore, 400);
+  }
+
+  // ホームの人数・増減を編集保存した時に、その法人の更新日時を記録する
+  function touchCompanyUpdated(companyId){
+    const company = data.companies.find(c=>c.id === companyId);
+    if(!company) return;
+    company.updatedAt = Date.now();
+    postToGas({action:"updateCompany", id: company.id, name: company.name, phone: company.phone || "", contactPerson: company.contactPerson || "", updatedAt: company.updatedAt, contacts: JSON.stringify(company.contacts || [])});
+  }
+
+  function vacancyOf(companyId){
+    return data.homes.filter(h=>String(h.companyId) === String(companyId))
+      .reduce((s,h)=> s + Math.max(h.capacity - h.count, 0), 0);
+  }
+  function getSortedCompanies(){
+    const list = [...data.companies];
+    if(sortMode === "vacancy"){
+      list.sort((a,b)=> vacancyOf(b.id) - vacancyOf(a.id));
+    } else {
+      list.sort((a,b)=> collatorJa.compare(a.name, b.name));
+    }
+    return list;
+  }
+  function updateSortBtns(){
+    document.querySelectorAll(".sort-btn").forEach(b=>{
+      b.classList.toggle("active", b.dataset.sort === sortMode);
+    });
+  }
+  document.querySelectorAll(".sort-btn").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      sortMode = b.dataset.sort;
+      localStorage.setItem("gh_sort_mode", sortMode);
+      updateSortBtns();
+      renderTop();
+    });
+  });
+  let gasUrl = localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL || "";
+
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+  function escapeHtml(str){
+    if(str === undefined || str === null) return "";
+    return String(str)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function formatDate(ts){
+    const d = new Date(Number(ts));
+    const pad = n => String(n).padStart(2,"0");
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function parseContactsJson(raw){
+    if(Array.isArray(raw)) return raw;
+    if(!raw) return [];
+    try{
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){
+      return [];
+    }
+  }
+  function contactChipHtml(phone, contactPerson){
+    if(!phone && !contactPerson) return "";
+    const phoneHtml = phone
+      ? `<a href="tel:${escapeHtml(String(phone).replace(/[^0-9+]/g,""))}" onclick="event.stopPropagation()">☎ ${escapeHtml(phone)}</a>`
+      : "";
+    const personHtml = contactPerson ? escapeHtml(contactPerson) : "";
+    let inner;
+    if(phoneHtml && personHtml) inner = `${phoneHtml}（${personHtml}）`;
+    else if(phoneHtml) inner = phoneHtml;
+    else inner = personHtml;
+    return `<span class="contact-chip">${inner}</span>`;
+  }
+
+  // ---------- トースト ----------
+  function showToast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=> t.classList.remove("show"), 1600);
+  }
+
+  // ---------- 確認モーダル ----------
+  let pendingConfirmAction = null;
+  function askConfirm(message, onConfirm){
+    document.getElementById("modalText").textContent = message;
+    pendingConfirmAction = onConfirm;
+    document.getElementById("modalOverlay").classList.add("show");
+  }
+  document.getElementById("modalCancel").addEventListener("click", ()=>{
+    document.getElementById("modalOverlay").classList.remove("show");
+    pendingConfirmAction = null;
+  });
+  document.getElementById("modalConfirm").addEventListener("click", ()=>{
+    document.getElementById("modalOverlay").classList.remove("show");
+    if(pendingConfirmAction) pendingConfirmAction();
+    pendingConfirmAction = null;
+  });
+
+  // ---------- 接続状態表示 ----------
+  function setConnStatus(state, label){
+    const dot = document.getElementById("connDot");
+    dot.className = "dot " + state;
+    document.getElementById("headerSub").textContent = label;
+  }
+
+  // ---------- JSONP読み込み ----------
+  function jsonpFetch(){
+    return new Promise((resolve, reject)=>{
+      if(!gasUrl){ reject(new Error("GAS URL未設定")); return; }
+      const cbName = "__ghCb_" + uid();
+      const script = document.createElement("script");
+      let done = false;
+      const timeout = setTimeout(()=>{
+        if(done) return;
+        done = true;
+        cleanup();
+        reject(new Error("timeout"));
+      }, 10000);
+      function cleanup(){
+        clearTimeout(timeout);
+        delete window[cbName];
+        if(script.parentNode) script.parentNode.removeChild(script);
+      }
+      window[cbName] = function(result){
+        if(done) return;
+        done = true;
+        cleanup();
+        resolve(result);
+      };
+      const sep = gasUrl.indexOf("?") === -1 ? "?" : "&";
+      script.src = gasUrl + sep + "callback=" + cbName + "&t=" + Date.now();
+      script.onerror = ()=>{
+        if(done) return;
+        done = true;
+        cleanup();
+        reject(new Error("network error"));
+      };
+      document.body.appendChild(script);
+    });
+  }
+
+  // ---------- no-cors 書き込み ----------
+  function postToGas(payload){
+    if(!gasUrl) return Promise.resolve();
+    return fetch(gasUrl, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    }).catch(()=>{ /* no-corsなので基本的にここには来ないが念のため */ });
+  }
+
+  // ---------- データ更新フロー ----------
+  function saveLocalCache(){
+    try{ localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(data)); }catch(e){}
+  }
+  function loadLocalCache(){
+    try{
+      const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+      if(raw) data = JSON.parse(raw);
+    }catch(e){}
+  }
+
+  function refreshFromSheet(silent){
+    if(!gasUrl) return Promise.resolve();
+    if(!silent) setConnStatus("busy", "更新中…");
+    return jsonpFetch().then(result=>{
+      data = {
+        companies: (result.companies || []).map(c=>({...c, updatedAt: Number(c.updatedAt) || null, contacts: parseContactsJson(c.contacts)})),
+        homes: (result.homes || []).map(h=>({...h, capacity:Number(h.capacity)||0, count:Number(h.count)||0})),
+        posts: (result.posts || []).map(p=>({...p, timestamp:Number(p.timestamp)||0}))
+      };
+      const removedOnSync = enforcePostLimit();
+      saveLocalCache();
+      if(removedOnSync.length > 0){
+        removedOnSync.forEach(p=> postToGas({action:"deletePost", id:p.id}));
+      }
+      setConnStatus("ok", "スプレッドシートと連携中");
+      renderCurrentScreen();
+    }).catch(err=>{
+      setConnStatus("err", "接続に失敗しました（キャッシュ表示中）");
+    });
+  }
+
+  function renderCurrentScreen(){
+    const activeTab = document.querySelector(".tab.active");
+    const screen = activeTab ? activeTab.dataset.screen : "top";
+    if(screen === "top") renderTop();
+    if(screen === "board") renderBoard();
+    if(screen === "edit") renderEdit();
+  }
+
+  // ---------- GAS URL設定 ----------
+  function applyGasUrlUiState(){
+    if(gasUrl){
+      document.getElementById("setupBanner").style.display = "none";
+      document.getElementById("connSettingsSection").style.display = "block";
+      document.getElementById("currentGasUrlText").textContent = gasUrl;
+    } else {
+      document.getElementById("setupBanner").style.display = "block";
+      document.getElementById("connSettingsSection").style.display = "none";
+      setConnStatus("err", "未接続：編集タブでGAS URLを設定してください");
+    }
+  }
+
+  document.getElementById("saveGasUrlBtn").addEventListener("click", ()=>{
+    const val = document.getElementById("gasUrlInput").value.trim();
+    if(!val){ showToast("URLを入力してください"); return; }
+    gasUrl = val;
+    localStorage.setItem(GAS_URL_KEY, gasUrl);
+    applyGasUrlUiState();
+    showToast("接続しました");
+    refreshFromSheet(false);
+  });
+
+  document.getElementById("changeGasUrlBtn").addEventListener("click", ()=>{
+    document.getElementById("gasUrlInput").value = gasUrl;
+    document.getElementById("setupBanner").style.display = "block";
+    document.getElementById("connSettingsSection").style.display = "none";
+  });
+
+  // ---------- タブ切り替え ----------
+  function switchToTab(screenName){
+    document.querySelectorAll(".tab").forEach(t=> t.classList.toggle("active", t.dataset.screen === screenName));
+    document.querySelectorAll(".screen").forEach(s=> s.classList.toggle("active", s.id === "screen-"+screenName));
+    renderCurrentScreen();
+    refreshFromSheet(true);
+  }
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click", ()=> switchToTab(tab.dataset.screen));
+  });
+
+  // ================= トップ画面 =================
+  function renderTop(){
+    const scrollY = window.scrollY;
+    updateSortBtns();
+    const list = document.getElementById("topList");
+    if(data.companies.length === 0){
+      list.innerHTML = `<div class="empty-msg">法人が登録されていません。<br>「編集」タブから法人を追加してください。</div>`;
+      window.scrollTo(0, scrollY);
+      return;
+    }
+    list.innerHTML = getSortedCompanies().map(c=>{
+      const homes = data.homes.filter(h=>String(h.companyId) === String(c.id));
+      const vacantTotal = homes.reduce((s,h)=> s + Math.max(h.capacity - h.count, 0), 0);
+      const isOpen = openCompanyIds.has(c.id);
+      const contactChips = [
+        contactChipHtml(c.phone, c.contactPerson),
+        ...(c.contacts || []).map(ct=> contactChipHtml(ct.phone, ct.contactPerson))
+      ].filter(Boolean);
+      const homesHtml = homes.length === 0
+        ? `<div class="home-row"><span class="small-gray">ホームが登録されていません</span></div>`
+        : homes.map(h=>{
+            const remain = h.capacity - h.count;
+            const full = remain <= 0;
+            const genderClass = h.gender === "male" ? "gender-male" : h.gender === "female" ? "gender-female" : "gender-any";
+            const genderLabel = h.gender === "male" ? "男性" : h.gender === "female" ? "女性" : "どちらでも";
+            const addressLine = [h.postalCode ? `〒${h.postalCode}` : "", h.address || ""].filter(Boolean).join(" ");
+            return `
+              <div class="home-row">
+                <div class="home-row-top">
+                  <div class="home-left">
+                    <span class="gender-badge ${genderClass}">${genderLabel}</span>
+                    <span class="home-name">${escapeHtml(h.name)}</span>
+                  </div>
+                  <div>
+                    <span class="status-pill ${full ? "status-full" : "status-vacant"}">${full ? "満室" : "空室"}</span>
+                    <span class="home-count">${h.count}／${h.capacity}名</span>
+                  </div>
+                </div>
+                ${addressLine ? `<div class="home-address">📍 ${escapeHtml(addressLine)}</div>` : ""}
+                ${h.notes ? `<div class="home-notes">${escapeHtml(h.notes)}</div>` : ""}
+              </div>`;
+          }).join("");
+      return `
+        <div class="company-card ${isOpen ? "open" : ""}" data-company-id="${c.id}">
+          <div class="company-head" data-action="toggle-company" data-id="${c.id}">
+            <div>
+              <div class="company-name">${escapeHtml(c.name)}</div>
+              <div class="company-vacancy">空室 <b>${vacantTotal}</b> 名</div>
+              ${c.updatedAt ? `<div class="company-updated">最終更新：${formatDate(c.updatedAt)}</div>` : ""}
+            </div>
+            <div class="chevron">▶</div>
+          </div>
+          <div class="home-list" data-home-list>
+            ${contactChips.length ? `<div class="contact-label contact-chips-inset">問い合わせ先</div><div class="contact-chips">${contactChips.join("")}</div>` : ""}
+            ${homesHtml}
+          </div>
+        </div>`;
+    }).join("");
+    // 開閉アニメーション用に max-height を設定
+    document.querySelectorAll("#topList .company-card").forEach(card=>{
+      const listEl = card.querySelector("[data-home-list]");
+      if(card.classList.contains("open")){
+        listEl.style.maxHeight = listEl.scrollHeight + "px";
+      } else {
+        listEl.style.maxHeight = "0px";
+      }
+    });
+    window.scrollTo(0, scrollY);
+  }
+
+  document.getElementById("topList").addEventListener("click", (e)=>{
+    const head = e.target.closest("[data-action='toggle-company']");
+    if(!head) return;
+    const id = head.dataset.id;
+    const card = head.closest(".company-card");
+    const listEl = card.querySelector("[data-home-list]");
+    const opening = !card.classList.contains("open");
+
+    if(opening){
+      openCompanyIds.add(id);
+      card.classList.add("open");
+      listEl.style.maxHeight = listEl.scrollHeight + "px";
+    } else {
+      openCompanyIds.delete(id);
+      // 現在の高さを明示してからアニメーションで0へ
+      listEl.style.maxHeight = listEl.scrollHeight + "px";
+      card.classList.remove("open");
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          listEl.style.maxHeight = "0px";
+        });
+      });
+    }
+  });
+
+  // ================= 掲示板画面 =================
+  function renderBoard(){
+    const scrollY = window.scrollY;
+    renderCompanySelect();
+    const list = document.getElementById("boardList");
+    const sorted = [...data.posts].sort((a,b)=> b.timestamp - a.timestamp);
+    if(sorted.length === 0){
+      list.innerHTML = `<div class="empty-msg">投稿はまだありません。</div>`;
+      window.scrollTo(0, scrollY);
+      return;
+    }
+    list.innerHTML = sorted.map(p=>{
+      const company = data.companies.find(c=>String(c.id) === String(p.companyId));
+      const companyName = company ? company.name : "（法人不明）";
+      if(openEditPostIds.has(p.id)){
+        return `
+          <div class="board-post" data-post-id="${p.id}">
+            <div class="board-meta">
+              <span class="board-company">${escapeHtml(companyName)}</span>
+              <span class="board-date">${formatDate(p.timestamp)}</span>
+            </div>
+            <label>担当者</label>
+            <input type="text" data-field="post-author" data-id="${p.id}" value="${escapeHtml(p.author)}">
+            <label>本文</label>
+            <textarea data-field="post-text" data-id="${p.id}">${escapeHtml(p.text)}</textarea>
+            <div class="post-edit-row">
+              <button class="icon-btn" data-action="cancel-edit-post" data-id="${p.id}">キャンセル</button>
+              <button class="icon-btn" data-action="save-post" data-id="${p.id}">保存</button>
+            </div>
+          </div>`;
+      }
+      return `
+        <div class="board-post" data-post-id="${p.id}">
+          <div class="board-meta">
+            <span class="board-company">${escapeHtml(companyName)}</span>
+            <span class="board-date">${formatDate(p.timestamp)}</span>
+          </div>
+          <div class="board-text">${escapeHtml(p.text)}</div>
+          <div class="board-author">担当：${escapeHtml(p.author || "（未入力）")}</div>
+          <div class="post-edit-row">
+            <button class="icon-btn" data-action="edit-post" data-id="${p.id}">編集</button>
+            <button class="icon-btn danger" data-action="del-post" data-id="${p.id}">削除</button>
+          </div>
+        </div>`;
+    }).join("");
+    window.scrollTo(0, scrollY);
+  }
+
+  document.getElementById("boardList").addEventListener("click", (e)=>{
+    const btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+
+    if(action === "edit-post"){
+      openEditPostIds.add(id);
+      preserveScroll(renderBoard);
+      return;
+    }
+
+    if(action === "cancel-edit-post"){
+      openEditPostIds.delete(id);
+      preserveScroll(renderBoard);
+      return;
+    }
+
+    if(action === "save-post"){
+      const item = btn.closest("[data-post-id]");
+      const author = item.querySelector("[data-field='post-author']").value.trim();
+      const text = item.querySelector("[data-field='post-text']").value.trim();
+      if(!text){ showToast("本文を入力してください"); return; }
+      const post = data.posts.find(p=>p.id === id);
+      if(post){
+        post.author = author;
+        post.text = text;
+        saveLocalCache();
+        openEditPostIds.delete(id);
+        preserveScroll(renderBoard);
+        showToast("保存しました");
+        postToGas({action:"updatePost", id, author, text})
+          .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      }
+      return;
+    }
+
+    if(action === "del-post"){
+      askConfirm("この投稿を削除しますか？", ()=>{
+        data.posts = data.posts.filter(p=>p.id !== id);
+        saveLocalCache();
+        preserveScroll(renderBoard);
+        showToast("削除しました");
+        postToGas({action:"deletePost", id})
+          .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      });
+      return;
+    }
+  });
+
+  // ================= 編集画面 =================
+  function renderEdit(){
+    const scrollY = window.scrollY;
+    applyGasUrlUiState();
+    renderCompanyEditList();
+    window.scrollTo(0, scrollY);
+  }
+
+  function renderCompanySelect(){
+    const sel = document.getElementById("postCompany");
+    const prev = sel.value;
+    sel.innerHTML = data.companies.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+    if(prev && data.companies.some(c=>c.id === prev)) sel.value = prev;
+  }
+
+  function renderCompanyEditList(){
+    const wrap = document.getElementById("companyEditList");
+    if(data.companies.length === 0){
+      wrap.innerHTML = "";
+      return;
+    }
+    wrap.innerHTML = data.companies.map(c=>{
+      const homes = data.homes.filter(h=>String(h.companyId) === String(c.id));
+      const isOpen = openEditCompanyIds.has(c.id);
+      const homesHtml = homes.map(h=>`
+        <div class="home-edit-item" data-home-id="${h.id}">
+          <span class="del-x" data-action="del-home" data-id="${h.id}">✕</span>
+          <div class="row2">
+            <div>
+              <label>ホーム名</label>
+              <input type="text" data-field="name" data-id="${h.id}" value="${escapeHtml(h.name)}">
+            </div>
+            <div>
+              <label>性別</label>
+              <select data-field="gender" data-id="${h.id}">
+                <option value="male" ${h.gender==="male"?"selected":""}>男性</option>
+                <option value="female" ${h.gender==="female"?"selected":""}>女性</option>
+                <option value="any" ${h.gender==="any"?"selected":""}>どちらでも</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2">
+            <div>
+              <label>定員</label>
+              <input type="number" min="0" data-field="capacity" data-id="${h.id}" value="${h.capacity}">
+            </div>
+            <div>
+              <label>現在の人数</label>
+              <input type="number" min="0" data-field="count" data-id="${h.id}" value="${h.count}">
+            </div>
+          </div>
+          <label>住所（任意）</label>
+          <div class="row2">
+            <div>
+              <input type="text" data-field="postalCode" data-id="${h.id}" value="${escapeHtml(h.postalCode || "")}" placeholder="郵便番号　例：340-0000" inputmode="numeric">
+            </div>
+          </div>
+          <input type="text" data-field="address" data-id="${h.id}" value="${escapeHtml(h.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
+          <label>備考欄</label>
+          <textarea data-field="notes" data-id="${h.id}" placeholder="気になる点など自由に入力">${escapeHtml(h.notes || "")}</textarea>
+          <div class="post-edit-row">
+            <button class="icon-btn" data-action="save-home" data-id="${h.id}">保存</button>
+          </div>
+        </div>
+      `).join("");
+
+      const drafts = draftHomes.filter(d=>String(d.companyId) === String(c.id));
+      const draftsHtml = drafts.map(d=>`
+        <div class="home-edit-item draft-item" data-temp-id="${d.tempId}">
+          <span class="del-x" data-action="cancel-new-home" data-id="${d.tempId}">✕</span>
+          <div class="row2">
+            <div>
+              <label>ホーム名</label>
+              <input type="text" data-field="name" data-id="${d.tempId}" value="${escapeHtml(d.name)}" placeholder="例：ホームA">
+            </div>
+            <div>
+              <label>性別</label>
+              <select data-field="gender" data-id="${d.tempId}">
+                <option value="male" ${d.gender==="male"?"selected":""}>男性</option>
+                <option value="female" ${d.gender==="female"?"selected":""}>女性</option>
+                <option value="any" ${d.gender==="any"?"selected":""}>どちらでも</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2">
+            <div>
+              <label>定員</label>
+              <input type="number" min="0" data-field="capacity" data-id="${d.tempId}" value="${d.capacity}">
+            </div>
+            <div>
+              <label>現在の人数</label>
+              <input type="number" min="0" data-field="count" data-id="${d.tempId}" value="${d.count}">
+            </div>
+          </div>
+          <label>住所（任意）</label>
+          <div class="row2">
+            <div>
+              <input type="text" data-field="postalCode" data-id="${d.tempId}" value="${escapeHtml(d.postalCode || "")}" placeholder="郵便番号　例：340-0000" inputmode="numeric">
+            </div>
+          </div>
+          <input type="text" data-field="address" data-id="${d.tempId}" value="${escapeHtml(d.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
+          <label>備考欄</label>
+          <textarea data-field="notes" data-id="${d.tempId}" placeholder="気になる点など自由に入力">${escapeHtml(d.notes || "")}</textarea>
+          <div class="post-edit-row">
+            <button class="icon-btn-lg" data-action="confirm-new-home" data-id="${d.tempId}">登録</button>
+          </div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="edit-section company-block ${isOpen ? "open" : ""}" data-company-id="${c.id}">
+          <div class="company-block-title" data-action="toggle-company-edit" data-id="${c.id}">
+            <h3>${escapeHtml(c.name)}</h3>
+            <div class="company-block-title-right">
+              <span class="chevron-edit">▶</span>
+            </div>
+          </div>
+          <div class="company-edit-body" data-edit-body>
+            <div class="company-info-edit">
+              <label>法人名</label>
+              <input type="text" data-field="company-name" data-id="${c.id}" value="${escapeHtml(c.name)}">
+              <label>代表（問い合わせ先）電話番号</label>
+              <input type="text" data-field="company-phone" data-id="${c.id}" value="${escapeHtml(c.phone || "")}" inputmode="tel">
+              <label>担当者</label>
+              <input type="text" data-field="company-contact" data-id="${c.id}" value="${escapeHtml(c.contactPerson || "")}">
+              ${(c.contacts || []).map(ct => `
+                <div class="home-edit-item" data-contact-id="${ct.id}">
+                  <span class="del-x" data-action="del-contact" data-id="${ct.id}" data-company-id="${c.id}">✕</span>
+                  <label>電話番号</label>
+                  <input type="text" data-field="contact-phone" data-id="${ct.id}" value="${escapeHtml(ct.phone || "")}" inputmode="tel">
+                  <label>担当者</label>
+                  <input type="text" data-field="contact-person" data-id="${ct.id}" value="${escapeHtml(ct.contactPerson || "")}">
+                </div>
+              `).join("")}
+              <button class="btn btn-outline" data-action="add-contact" data-id="${c.id}" style="margin-top:10px;">＋連絡先を追加</button>
+              <div class="post-edit-row" style="margin-top:14px;">
+                <button class="icon-btn" data-action="save-company" data-id="${c.id}">法人情報を保存</button>
+              </div>
+            </div>
+            <div class="home-list-divider"></div>
+            ${homesHtml || `<div class="small-gray">まだホームが登録されていません</div>`}
+            ${draftsHtml}
+            <button class="btn btn-outline" data-action="add-home" data-id="${c.id}">＋ホームを追加</button>
+            <button class="icon-btn danger" data-action="del-company" data-id="${c.id}" style="margin-top:14px;">法人を削除</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // 開閉アニメーション用に max-height を設定（初期状態反映）
+    document.querySelectorAll("#companyEditList .company-block").forEach(block=>{
+      const body = block.querySelector("[data-edit-body]");
+      body.style.maxHeight = block.classList.contains("open") ? body.scrollHeight + "px" : "0px";
+    });
+  }
+
+  // ---------- 折りたたみフォームの開閉（汎用） ----------
+  function setupCollapsibleToggle(buttonId, bodyId, openLabel, closeLabel){
+    const btn = document.getElementById(buttonId);
+    const body = document.getElementById(bodyId);
+    btn.addEventListener("click", ()=>{
+      const opening = !(body.style.maxHeight && body.style.maxHeight !== "0px");
+      if(opening){
+        body.style.maxHeight = body.scrollHeight + "px";
+        btn.textContent = closeLabel;
+      } else {
+        body.style.maxHeight = "0px";
+        btn.textContent = openLabel;
+      }
+    });
+  }
+  function collapseForm(buttonId, bodyId, openLabel){
+    document.getElementById(bodyId).style.maxHeight = "0px";
+    document.getElementById(buttonId).textContent = openLabel;
+  }
+  setupCollapsibleToggle("toggleAddCompanyBtn", "addCompanyBody", "＋法人を追加", "－閉じる");
+  setupCollapsibleToggle("toggleAddPostBtn", "addPostBody", "＋投稿する", "－閉じる");
+
+  // ---------- 法人追加 ----------
+  document.getElementById("addCompanyBtn").addEventListener("click", ()=>{
+    const input = document.getElementById("newCompanyName");
+    const phoneInput = document.getElementById("newCompanyPhone");
+    const contactInput = document.getElementById("newCompanyContact");
+    const name = input.value.trim();
+    const phone = phoneInput.value.trim();
+    const contactPerson = contactInput.value.trim();
+    if(!name){ showToast("法人名を入力してください"); return; }
+    const newCompany = {id: uid(), name, phone, contactPerson, contacts: []};
+    data.companies.push(newCompany);
+    saveLocalCache();
+    input.value = "";
+    phoneInput.value = "";
+    contactInput.value = "";
+    collapseForm("toggleAddCompanyBtn", "addCompanyBody", "＋法人を追加");
+    preserveScroll(renderEdit);
+    showToast("法人を追加しました");
+    postToGas({action:"addCompany", id:newCompany.id, name:newCompany.name, phone:newCompany.phone, contactPerson:newCompany.contactPerson, contacts: "[]"})
+      .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+  });
+
+  // 一言掲示板の投稿は最大15件まで。超えた分は古いものから自動的に削除する
+  const MAX_BOARD_POSTS = 15;
+  function enforcePostLimit(){
+    if(data.posts.length <= MAX_BOARD_POSTS) return [];
+    const sortedAsc = [...data.posts].sort((a,b)=> a.timestamp - b.timestamp);
+    const overflow = sortedAsc.length - MAX_BOARD_POSTS;
+    const removed = sortedAsc.slice(0, overflow);
+    const removeIds = new Set(removed.map(p=>p.id));
+    data.posts = data.posts.filter(p=>!removeIds.has(p.id));
+    return removed;
+  }
+
+  // ---------- 投稿追加 ----------
+  document.getElementById("addPostBtn").addEventListener("click", ()=>{
+    const companyId = document.getElementById("postCompany").value;
+    const author = document.getElementById("postAuthor").value.trim();
+    const text = document.getElementById("postText").value.trim();
+    if(!companyId){ showToast("法人を選択してください"); return; }
+    if(!text){ showToast("本文を入力してください"); return; }
+    const newPost = {id: uid(), companyId, author, text, timestamp: Date.now()};
+    data.posts.push(newPost);
+    const removed = enforcePostLimit();
+    saveLocalCache();
+    document.getElementById("postText").value = "";
+    collapseForm("toggleAddPostBtn", "addPostBody", "＋投稿する");
+    preserveScroll(renderBoard);
+    showToast("投稿しました");
+    postToGas({action:"addPost", ...newPost})
+      .then(()=> Promise.all(removed.map(p=> postToGas({action:"deletePost", id:p.id}))))
+      .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+  });
+
+  // ---------- イベント委任（編集画面全体） ----------
+  document.getElementById("screen-edit").addEventListener("click", (e)=>{
+    const btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+
+    if(action === "save-company"){
+      const block = btn.closest(".company-block");
+      const name = block.querySelector("[data-field='company-name']").value.trim();
+      const phone = block.querySelector("[data-field='company-phone']").value.trim();
+      const contactPerson = block.querySelector("[data-field='company-contact']").value.trim();
+      if(!name){ showToast("法人名を入力してください"); return; }
+      const company = data.companies.find(c=>c.id === id);
+      if(company){
+        company.name = name;
+        company.phone = phone;
+        company.contactPerson = contactPerson;
+        // 追加した連絡先の入力内容を現在のDOMから読み取って反映する
+        const contactRows = block.querySelectorAll("[data-contact-id]");
+        company.contacts = Array.from(contactRows).map(row=>{
+          const contactId = row.dataset.contactId;
+          return {
+            id: contactId,
+            phone: row.querySelector("[data-field='contact-phone']").value.trim(),
+            contactPerson: row.querySelector("[data-field='contact-person']").value.trim()
+          };
+        });
+        saveLocalCache();
+        preserveScroll(renderEdit);
+        showToast("法人情報を保存しました");
+        postToGas({action:"updateCompany", id, name, phone, contactPerson, updatedAt: company.updatedAt || "", contacts: JSON.stringify(company.contacts)})
+          .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      }
+      return;
+    }
+
+    if(action === "add-contact"){
+      const company = data.companies.find(c=>c.id === id);
+      if(!company) return;
+      if(!company.contacts) company.contacts = [];
+      company.contacts.push({ id: uid(), phone: "", contactPerson: "" });
+      preserveScroll(renderEdit);
+      return;
+    }
+
+    if(action === "del-contact"){
+      const companyId = btn.dataset.companyId;
+      const company = data.companies.find(c=>c.id === companyId);
+      if(!company) return;
+      company.contacts = (company.contacts || []).filter(ct=>ct.id !== id);
+      preserveScroll(renderEdit);
+      return;
+    }
+
+    if(action === "toggle-company-edit"){
+      const block = btn.closest(".company-block");
+      const body = block.querySelector("[data-edit-body]");
+      const opening = !block.classList.contains("open");
+      if(opening){
+        openEditCompanyIds.add(id);
+        block.classList.add("open");
+        body.style.maxHeight = body.scrollHeight + "px";
+      } else {
+        openEditCompanyIds.delete(id);
+        body.style.maxHeight = body.scrollHeight + "px";
+        block.classList.remove("open");
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            body.style.maxHeight = "0px";
+          });
+        });
+      }
+      return;
+    }
+
+    if(action === "add-home"){
+      draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "" });
+      preserveScroll(renderEdit);
+      return;
+    }
+
+    if(action === "confirm-new-home"){
+      const item = btn.closest("[data-temp-id]");
+      const name = item.querySelector("[data-field='name']").value.trim() || "新しいホーム";
+      const gender = item.querySelector("[data-field='gender']").value;
+      const capacity = Math.max(0, parseInt(item.querySelector("[data-field='capacity']").value, 10) || 0);
+      const count = Math.max(0, parseInt(item.querySelector("[data-field='count']").value, 10) || 0);
+      const notes = item.querySelector("[data-field='notes']").value.trim();
+      const postalCode = item.querySelector("[data-field='postalCode']").value.trim();
+      const address = item.querySelector("[data-field='address']").value.trim();
+      const draft = draftHomes.find(d=>d.tempId === id);
+      if(!draft) return;
+      const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address };
+      data.homes.push(newHome);
+      draftHomes = draftHomes.filter(d=>d.tempId !== id);
+      touchCompanyUpdated(draft.companyId);
+      saveLocalCache();
+      preserveScroll(()=>{ renderEdit(); renderTop(); });
+      showToast("ホームを登録しました");
+      postToGas({action:"addHome", ...newHome})
+        .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      return;
+    }
+
+    if(action === "cancel-new-home"){
+      draftHomes = draftHomes.filter(d=>d.tempId !== id);
+      preserveScroll(renderEdit);
+      return;
+    }
+
+    if(action === "save-home"){
+      const item = btn.closest("[data-home-id]");
+      const home = data.homes.find(h=>h.id === id);
+      if(!home) return;
+      home.name = item.querySelector("[data-field='name']").value.trim() || home.name;
+      home.gender = item.querySelector("[data-field='gender']").value;
+      home.capacity = Math.max(0, parseInt(item.querySelector("[data-field='capacity']").value, 10) || 0);
+      home.count = Math.max(0, parseInt(item.querySelector("[data-field='count']").value, 10) || 0);
+      home.notes = item.querySelector("[data-field='notes']").value.trim();
+      home.postalCode = item.querySelector("[data-field='postalCode']").value.trim();
+      home.address = item.querySelector("[data-field='address']").value.trim();
+      touchCompanyUpdated(home.companyId);
+      saveLocalCache();
+      preserveScroll(()=>{ renderEdit(); renderTop(); });
+      showToast("保存しました");
+      postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address})
+        .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      return;
+    }
+
+    if(action === "del-home"){
+      askConfirm("このホームを削除しますか？", ()=>{
+        const removedHome = data.homes.find(h=>h.id === id);
+        data.homes = data.homes.filter(h=>h.id !== id);
+        if(removedHome) touchCompanyUpdated(removedHome.companyId);
+        saveLocalCache();
+        preserveScroll(renderEdit);
+        showToast("削除しました");
+        postToGas({action:"deleteHome", id})
+          .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      });
+      return;
+    }
+
+    if(action === "del-company"){
+      askConfirm("この法人と、所属するホームをすべて削除しますか？", ()=>{
+        data.companies = data.companies.filter(c=>c.id !== id);
+        data.homes = data.homes.filter(h=>String(h.companyId) !== String(id));
+        saveLocalCache();
+        preserveScroll(renderEdit);
+        showToast("削除しました");
+        postToGas({action:"deleteCompany", id})
+          .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
+      });
+      return;
+    }
+  });
+
+  // ※ホーム情報は「保存」「登録」ボタンを押した時にのみ反映されます（自動保存はしません）
+
+  // ---------- 初期表示 ----------
+  loadLocalCache();
+  applyGasUrlUiState();
+  renderTop();
+  if(gasUrl){
+    refreshFromSheet(false);
+    setInterval(()=>refreshFromSheet(true), POLL_INTERVAL_MS);
+  }
+})();
+</script>
+
+</body>
+</html>
