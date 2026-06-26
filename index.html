@@ -30,7 +30,14 @@
     position:sticky; top:0; z-index:50;
   }
   header h1{margin:0; font-size:17px; font-weight:600; letter-spacing:.5px;}
-  header .sub{font-size:11px; opacity:.8; margin-top:2px; display:flex; align-items:center; gap:6px;}
+  .sub-row{display:flex; align-items:center; justify-content:space-between; margin-top:2px; gap:10px;}
+  header .sub{font-size:11px; opacity:.8; display:flex; align-items:center; gap:6px;}
+  .refresh-btn{
+    font-size:11px; color:#fff; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.35);
+    border-radius:20px; padding:4px 10px; cursor:pointer; flex-shrink:0;
+  }
+  .refresh-btn:active{ background:rgba(255,255,255,.3); }
+  .refresh-btn.spinning{ opacity:.6; }
   .dot{width:7px; height:7px; border-radius:50%; background:#888; flex-shrink:0;}
   .dot.ok{background:#5FD68C;}
   .dot.busy{background:#F4C95D;}
@@ -240,7 +247,10 @@
 
 <header>
   <h1>グループホーム空室情報</h1>
-  <div class="sub"><span class="dot" id="connDot"></span><span id="headerSub">読み込み中…</span></div>
+  <div class="sub-row">
+    <div class="sub"><span class="dot" id="connDot"></span><span id="headerSub">読み込み中…</span></div>
+    <button id="manualRefreshBtn" class="refresh-btn" title="今すぐ更新">⟳ 更新</button>
+  </div>
 </header>
 
 <div class="screen active" id="screen-top">
@@ -313,7 +323,7 @@
   // ↓ここにデプロイしたGASの「.../exec」のURLを貼っておくと、
   // 誰がこのページを開いても自動的に接続されます（端末ごとの設定が不要になります）
   const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxa3x-r1Bnp0QLJbBQ25UtvfXThAnHwX6-6OQtF1ZovJrbzQe4c3gqOy8okJZ2oa3t28w/exec";
-  const POLL_INTERVAL_MS = 30000;
+  const POLL_INTERVAL_MS = 180000;
 
   let data = { companies: [], homes: [], posts: [] };
   let openCompanyIds = new Set();
@@ -552,6 +562,16 @@
       setConnStatus("err", "接続に失敗しました（キャッシュ表示中）");
     });
   }
+
+  document.getElementById("manualRefreshBtn").addEventListener("click", ()=>{
+    const btn = document.getElementById("manualRefreshBtn");
+    btn.classList.add("spinning");
+    btn.disabled = true;
+    refreshFromSheet(false).finally(()=>{
+      btn.classList.remove("spinning");
+      btn.disabled = false;
+    });
+  });
 
   function renderCurrentScreen(){
     const activeTab = document.querySelector(".tab.active");
