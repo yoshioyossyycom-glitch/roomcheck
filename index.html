@@ -330,10 +330,8 @@
     document.addEventListener(evt, ()=>{ preTapScrollY = window.scrollY; }, { passive: true, capture: true });
   });
 
-  // 再描画でページが先頭に飛ばないよう、スクロール位置を強めに復元する
-  function preserveScroll(renderFn){
-    const scrollY = preTapScrollY;
-    renderFn();
+  // 再描画でページが先頭に飛ばないよう、スクロール位置を一定時間しつこく復元する
+  function restoreScrollRepeatedly(scrollY){
     const restore = () => {
       if(Math.abs(window.scrollY - scrollY) > 2) window.scrollTo(0, scrollY);
     };
@@ -342,6 +340,12 @@
     setTimeout(restore, 60);
     setTimeout(restore, 200);
     setTimeout(restore, 400);
+  }
+
+  function preserveScroll(renderFn){
+    const scrollY = preTapScrollY;
+    renderFn();
+    restoreScrollRepeatedly(scrollY);
   }
 
   // 法人ブロックなど、再描画後も存在し続ける要素を基準に
@@ -582,7 +586,7 @@
     const list = document.getElementById("topList");
     if(data.companies.length === 0){
       list.innerHTML = `<div class="empty-msg">法人が登録されていません。<br>「編集」タブから法人を追加してください。</div>`;
-      window.scrollTo(0, scrollY);
+      restoreScrollRepeatedly(scrollY);
       return;
     }
     list.innerHTML = getSortedCompanies().map(c=>{
@@ -642,7 +646,7 @@
         listEl.style.maxHeight = "0px";
       }
     });
-    window.scrollTo(0, scrollY);
+    restoreScrollRepeatedly(scrollY);
   }
 
   document.getElementById("topList").addEventListener("click", (e)=>{
@@ -678,7 +682,7 @@
     const sorted = [...data.posts].sort((a,b)=> b.timestamp - a.timestamp);
     if(sorted.length === 0){
       list.innerHTML = `<div class="empty-msg">投稿はまだありません。</div>`;
-      window.scrollTo(0, scrollY);
+      restoreScrollRepeatedly(scrollY);
       return;
     }
     list.innerHTML = sorted.map(p=>{
@@ -715,7 +719,7 @@
           </div>
         </div>`;
     }).join("");
-    window.scrollTo(0, scrollY);
+    restoreScrollRepeatedly(scrollY);
   }
 
   document.getElementById("boardList").addEventListener("click", (e)=>{
@@ -773,7 +777,7 @@
     const scrollY = window.scrollY;
     applyGasUrlUiState();
     renderCompanyEditList();
-    window.scrollTo(0, scrollY);
+    restoreScrollRepeatedly(scrollY);
   }
 
   function renderCompanySelect(){
