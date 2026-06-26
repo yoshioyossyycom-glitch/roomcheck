@@ -357,6 +357,27 @@
     setTimeout(restore, 400);
   }
 
+  // 法人ブロックなど、再描画後も存在し続ける要素を基準に
+  // 「その要素が画面上の同じ位置に留まる」ようスクロールを補正する。
+  // フォーカス移動などブラウザ側の予期しない自動スクロールにも対応できる。
+  function preserveScrollAnchoredTo(selector, renderFn){
+    const ref = document.querySelector(selector);
+    const beforeTop = ref ? ref.getBoundingClientRect().top : null;
+    renderFn();
+    if(beforeTop === null) return;
+    const restore = () => {
+      const newRef = document.querySelector(selector);
+      if(!newRef) return;
+      const diff = newRef.getBoundingClientRect().top - beforeTop;
+      if(Math.abs(diff) > 1) window.scrollBy(0, diff);
+    };
+    restore();
+    requestAnimationFrame(restore);
+    setTimeout(restore, 60);
+    setTimeout(restore, 200);
+    setTimeout(restore, 400);
+  }
+
   // ホームの人数・増減を編集保存した時に、その法人の更新日時を記録する
   function touchCompanyUpdated(companyId){
     const company = data.companies.find(c=>c.id === companyId);
@@ -1043,7 +1064,7 @@
           };
         });
         saveLocalCache();
-        preserveScroll(renderEdit);
+        preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
         showToast("法人情報を保存しました");
         postToGas({action:"updateCompany", id, name, phone, contactPerson, updatedAt: company.updatedAt || "", contacts: JSON.stringify(company.contacts)})
           .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
@@ -1056,7 +1077,7 @@
       if(!company) return;
       if(!company.contacts) company.contacts = [];
       company.contacts.push({ id: uid(), phone: "", contactPerson: "" });
-      preserveScroll(renderEdit);
+      preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
       return;
     }
 
@@ -1065,7 +1086,7 @@
       const company = data.companies.find(c=>c.id === companyId);
       if(!company) return;
       company.contacts = (company.contacts || []).filter(ct=>ct.id !== id);
-      preserveScroll(renderEdit);
+      preserveScrollAnchoredTo(`.company-block[data-company-id="${companyId}"]`, renderEdit);
       return;
     }
 
@@ -1092,7 +1113,7 @@
 
     if(action === "add-home"){
       draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "" });
-      preserveScroll(renderEdit);
+      preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
       return;
     }
 
@@ -1112,7 +1133,7 @@
       draftHomes = draftHomes.filter(d=>d.tempId !== id);
       touchCompanyUpdated(draft.companyId);
       saveLocalCache();
-      preserveScroll(()=>{ renderEdit(); renderTop(); });
+      preserveScrollAnchoredTo(`.company-block[data-company-id="${draft.companyId}"]`, ()=>{ renderEdit(); renderTop(); });
       showToast("ホームを登録しました");
       postToGas({action:"addHome", ...newHome})
         .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
@@ -1120,8 +1141,14 @@
     }
 
     if(action === "cancel-new-home"){
+      const draft = draftHomes.find(d=>d.tempId === id);
+      const companyId = draft ? draft.companyId : null;
       draftHomes = draftHomes.filter(d=>d.tempId !== id);
-      preserveScroll(renderEdit);
+      if(companyId){
+        preserveScrollAnchoredTo(`.company-block[data-company-id="${companyId}"]`, renderEdit);
+      } else {
+        preserveScroll(renderEdit);
+      }
       return;
     }
 
@@ -1138,7 +1165,7 @@
       home.address = item.querySelector("[data-field='address']").value.trim();
       touchCompanyUpdated(home.companyId);
       saveLocalCache();
-      preserveScroll(()=>{ renderEdit(); renderTop(); });
+      preserveScrollAnchoredTo(`.company-block[data-company-id="${home.companyId}"]`, ()=>{ renderEdit(); renderTop(); });
       showToast("保存しました");
       postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address})
         .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
@@ -1151,7 +1178,11 @@
         data.homes = data.homes.filter(h=>h.id !== id);
         if(removedHome) touchCompanyUpdated(removedHome.companyId);
         saveLocalCache();
-        preserveScroll(renderEdit);
+        if(removedHome){
+          preserveScrollAnchoredTo(`.company-block[data-company-id="${removedHome.companyId}"]`, renderEdit);
+        } else {
+          preserveScroll(renderEdit);
+        }
         showToast("削除しました");
         postToGas({action:"deleteHome", id})
           .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
