@@ -269,19 +269,6 @@
 
 <div class="screen" id="screen-edit">
 
-  <div class="setup-banner" id="setupBanner" style="display:none;">
-    <b>初回設定</b><br>
-    GASのウェブアプリURL（末尾が <code>/exec</code>）をここに貼り付けてください。スプレッドシートと連携されます。
-    <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:8px;">
-    <button class="btn" id="saveGasUrlBtn">保存して接続</button>
-  </div>
-
-  <div class="edit-section" id="connSettingsSection" style="display:none;">
-    <h3>連携設定</h3>
-    <div class="small-gray" id="currentGasUrlText" style="word-break:break-all;"></div>
-    <button class="icon-btn" id="changeGasUrlBtn" style="margin-top:8px;">URLを変更する</button>
-  </div>
-
   <div class="edit-section">
     <button class="btn" id="toggleAddCompanyBtn">＋法人を追加</button>
     <div class="collapsible-body" id="addCompanyBody">
@@ -570,34 +557,12 @@
     if(screen === "edit") renderEdit();
   }
 
-  // ---------- GAS URL設定 ----------
+  // ---------- GAS 接続状態 ----------
   function applyGasUrlUiState(){
-    if(gasUrl){
-      document.getElementById("setupBanner").style.display = "none";
-      document.getElementById("connSettingsSection").style.display = "block";
-      document.getElementById("currentGasUrlText").textContent = gasUrl;
-    } else {
-      document.getElementById("setupBanner").style.display = "block";
-      document.getElementById("connSettingsSection").style.display = "none";
-      setConnStatus("err", "未接続：編集タブでGAS URLを設定してください");
+    if(!gasUrl){
+      setConnStatus("err", "未接続：DEFAULT_GAS_URLを設定してください");
     }
   }
-
-  document.getElementById("saveGasUrlBtn").addEventListener("click", ()=>{
-    const val = document.getElementById("gasUrlInput").value.trim();
-    if(!val){ showToast("URLを入力してください"); return; }
-    gasUrl = val;
-    localStorage.setItem(GAS_URL_KEY, gasUrl);
-    applyGasUrlUiState();
-    showToast("接続しました");
-    refreshFromSheet(false);
-  });
-
-  document.getElementById("changeGasUrlBtn").addEventListener("click", ()=>{
-    document.getElementById("gasUrlInput").value = gasUrl;
-    document.getElementById("setupBanner").style.display = "block";
-    document.getElementById("connSettingsSection").style.display = "none";
-  });
 
   // ---------- タブ切り替え ----------
   function switchToTab(screenName){
