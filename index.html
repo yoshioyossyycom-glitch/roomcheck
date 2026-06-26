@@ -47,6 +47,17 @@
     display:flex; position:fixed; bottom:0; left:0; right:0; background:#fff;
     border-top:1px solid #ddd; z-index:60; padding-bottom:env(safe-area-inset-bottom);
   }
+  .scroll-top-btn{
+    position:fixed; right:16px; bottom:calc(70px + env(safe-area-inset-bottom));
+    width:42px; height:42px; border-radius:50%; border:none;
+    background:var(--navy); color:#fff; font-size:16px; box-shadow:0 2px 8px rgba(0,0,0,.25);
+    z-index:70; cursor:pointer;
+    opacity:0; pointer-events:none; transform:translateY(8px);
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .scroll-top-btn.show{
+    opacity:1; pointer-events:auto; transform:translateY(0);
+  }
   .tab{
     flex:1; text-align:center; padding:10px 0 8px; font-size:12px; color:#999;
     display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
@@ -302,6 +313,8 @@
   <div class="tab" data-screen="board"><span class="ic">📝</span>一言掲示板</div>
   <div class="tab" data-screen="edit"><span class="ic">⚙️</span>編集</div>
 </div>
+
+<button id="scrollTopBtn" class="scroll-top-btn" title="上に戻る">▲</button>
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
@@ -1193,6 +1206,15 @@
   });
 
   // ※ホーム情報は「保存」「登録」ボタンを押した時にのみ反映されます（自動保存はしません）
+
+  // ---------- 上に戻るボタン ----------
+  const scrollTopBtn = document.getElementById("scrollTopBtn");
+  window.addEventListener("scroll", ()=>{
+    scrollTopBtn.classList.toggle("show", window.scrollY > 250);
+  }, { passive: true });
+  scrollTopBtn.addEventListener("click", ()=>{
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 
   // ---------- 初期表示 ----------
   loadLocalCache();
