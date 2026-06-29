@@ -122,6 +122,10 @@
   .gender-male{background:#5B8DEF;}
   .gender-female{background:#E87FA0;}
   .gender-any{background:#9B7FD4;}
+  .type-badge{
+    font-size:10.5px; padding:2px 6px; border-radius:6px; color:var(--navy-light);
+    background:#E8EDF7; flex-shrink:0; white-space:nowrap;
+  }
   .home-name{font-weight:600;}
   .status-pill{
     font-size:11.5px; padding:3px 9px; border-radius:20px; font-weight:600; white-space:nowrap;
@@ -645,6 +649,7 @@
                 <div class="home-row-top">
                   <div class="home-left">
                     <span class="gender-badge ${genderClass}">${genderLabel}</span>
+                    ${h.homeType ? `<span class="type-badge">${escapeHtml(h.homeType)}</span>` : ""}
                     <span class="home-name">${escapeHtml(h.name)}</span>
                   </div>
                   <div>
@@ -849,6 +854,14 @@
               </select>
             </div>
           </div>
+          <label>種類</label>
+          <select data-field="homeType" data-id="${h.id}">
+            <option value="">未選択</option>
+            <option value="包括型" ${h.homeType==="包括型"?"selected":""}>①包括型</option>
+            <option value="日中支援型" ${h.homeType==="日中支援型"?"selected":""}>②日中支援型</option>
+            <option value="外部サービス型" ${h.homeType==="外部サービス型"?"selected":""}>③外部サービス型</option>
+            <option value="サテライト" ${h.homeType==="サテライト"?"selected":""}>④サテライト</option>
+          </select>
           <div class="row2">
             <div>
               <label>定員</label>
@@ -892,6 +905,14 @@
               </select>
             </div>
           </div>
+          <label>種類</label>
+          <select data-field="homeType" data-id="${d.tempId}">
+            <option value="">未選択</option>
+            <option value="包括型" ${d.homeType==="包括型"?"selected":""}>①包括型</option>
+            <option value="日中支援型" ${d.homeType==="日中支援型"?"selected":""}>②日中支援型</option>
+            <option value="外部サービス型" ${d.homeType==="外部サービス型"?"selected":""}>③外部サービス型</option>
+            <option value="サテライト" ${d.homeType==="サテライト"?"selected":""}>④サテライト</option>
+          </select>
           <div class="row2">
             <div>
               <label>定員</label>
@@ -1117,7 +1138,7 @@
     }
 
     if(action === "add-home"){
-      draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "" });
+      draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "", homeType: "" });
       preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
       return;
     }
@@ -1126,6 +1147,7 @@
       const item = btn.closest("[data-temp-id]");
       const name = item.querySelector("[data-field='name']").value.trim() || "新しいホーム";
       const gender = item.querySelector("[data-field='gender']").value;
+      const homeType = item.querySelector("[data-field='homeType']").value;
       const capacity = Math.max(0, parseInt(item.querySelector("[data-field='capacity']").value, 10) || 0);
       const count = Math.max(0, parseInt(item.querySelector("[data-field='count']").value, 10) || 0);
       const notes = item.querySelector("[data-field='notes']").value.trim();
@@ -1133,7 +1155,7 @@
       const address = item.querySelector("[data-field='address']").value.trim();
       const draft = draftHomes.find(d=>d.tempId === id);
       if(!draft) return;
-      const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address };
+      const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address, homeType };
       data.homes.push(newHome);
       draftHomes = draftHomes.filter(d=>d.tempId !== id);
       touchCompanyUpdated(draft.companyId);
@@ -1163,6 +1185,7 @@
       if(!home) return;
       home.name = item.querySelector("[data-field='name']").value.trim() || home.name;
       home.gender = item.querySelector("[data-field='gender']").value;
+      home.homeType = item.querySelector("[data-field='homeType']").value;
       home.capacity = Math.max(0, parseInt(item.querySelector("[data-field='capacity']").value, 10) || 0);
       home.count = Math.max(0, parseInt(item.querySelector("[data-field='count']").value, 10) || 0);
       home.notes = item.querySelector("[data-field='notes']").value.trim();
@@ -1172,7 +1195,7 @@
       saveLocalCache();
       preserveScrollAnchoredTo(`.company-block[data-company-id="${home.companyId}"]`, ()=>{ renderEdit(); renderTop(); });
       showToast("保存しました");
-      postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address})
+      postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address, homeType: home.homeType})
         .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
       return;
     }
