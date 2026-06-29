@@ -225,8 +225,10 @@
   }
   .company-block.open .chevron-edit{transform:rotate(90deg);}
   .company-edit-body{
-    overflow:hidden; max-height:0;
-    transition:max-height .3s cubic-bezier(.4,0,.2,1);
+    display:none;
+  }
+  .company-block.open .company-edit-body{
+    display:block;
   }
   .company-info-edit{padding-bottom:6px;}
   .collapsible-body{
@@ -977,12 +979,6 @@
         </div>
       `;
     }).join("");
-
-    // 開閉アニメーション用に max-height を設定（初期状態反映）
-    document.querySelectorAll("#companyEditList .company-block").forEach(block=>{
-      const body = block.querySelector("[data-edit-body]");
-      body.style.maxHeight = block.classList.contains("open") ? body.scrollHeight + "px" : "0px";
-    });
   }
 
   // ---------- 折りたたみフォームの開閉（汎用） ----------
@@ -1118,21 +1114,13 @@
 
     if(action === "toggle-company-edit"){
       const block = btn.closest(".company-block");
-      const body = block.querySelector("[data-edit-body]");
       const opening = !block.classList.contains("open");
       if(opening){
         openEditCompanyIds.add(id);
         block.classList.add("open");
-        body.style.maxHeight = body.scrollHeight + "px";
       } else {
         openEditCompanyIds.delete(id);
-        body.style.maxHeight = body.scrollHeight + "px";
         block.classList.remove("open");
-        requestAnimationFrame(()=>{
-          requestAnimationFrame(()=>{
-            body.style.maxHeight = "0px";
-          });
-        });
       }
       return;
     }
