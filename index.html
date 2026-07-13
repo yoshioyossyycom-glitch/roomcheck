@@ -48,9 +48,9 @@
   .refresh-btn:active{ transform:scale(.96); }
   .refresh-btn.spinning{ opacity:.6; }
   .dot{width:7px; height:7px; border-radius:50%; background:#cfe9da; flex-shrink:0;}
-  .dot.ok{background:#FFE45C;}
+  .dot.ok{background:#4A90E2;}
   .dot.busy{background:#FFD27C;}
-  .dot.err{background:#FFB3A6;}
+  .dot.err{background:#E9573F;}
 
   .tabs{
     display:flex; position:fixed; bottom:0; left:0; right:0; background:#fff;
@@ -726,7 +726,7 @@
           <div class="company-head" data-action="toggle-company" data-id="${c.id}">
             <div>
               <div class="company-name">${escapeHtml(c.name)}</div>
-              <div class="company-vacancy">空室 <b>${vacantTotal}</b> 名</div>
+              <div class="company-vacancy">空き <b>${vacantTotal}</b> 室</div>
               ${c.updatedAt ? `<div class="company-updated">最終更新：${formatDate(c.updatedAt)}</div>` : ""}
             </div>
             <div class="chevron">▶</div>
