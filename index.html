@@ -132,7 +132,8 @@
     padding:8px 10px; white-space:pre-wrap; line-height:1.5;
   }
   .home-row:last-child{border-bottom:none;}
-  .home-left{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .home-left{display:flex; flex-direction:column; gap:5px; align-items:flex-start;}
+  .home-badges{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
   .gender-badge{
     font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; flex-shrink:0;
   }
@@ -143,7 +144,7 @@
     font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; color:var(--orange-deep);
     background:var(--orange-pale); flex-shrink:0; white-space:nowrap;
   }
-  .home-name{font-weight:700;}
+  .home-name{font-weight:700; font-size:14.5px;}
   .status-pill{
     font-size:11.5px; padding:3px 10px; border-radius:999px; font-weight:800; white-space:nowrap;
   }
@@ -689,9 +690,11 @@
               <div class="home-row">
                 <div class="home-row-top">
                   <div class="home-left">
-                    <span class="gender-badge ${genderClass}">${genderLabel}</span>
-                    ${h.homeType ? `<span class="type-badge">${escapeHtml(h.homeType)}</span>` : ""}
-                    <span class="home-name">${escapeHtml(h.name)}</span>
+                    <div class="home-badges">
+                      <span class="gender-badge ${genderClass}">${genderLabel}</span>
+                      ${h.homeType ? `<span class="type-badge">${escapeHtml(h.homeType)}</span>` : ""}
+                    </div>
+                    <div class="home-name">↳${escapeHtml(h.name)}</div>
                   </div>
                   <div>
                     <span class="status-pill ${full ? "status-full" : "status-vacant"}">${full ? "満室" : "空室"}</span>
