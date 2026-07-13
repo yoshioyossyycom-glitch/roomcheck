@@ -701,7 +701,7 @@
             const full = remain <= 0;
             const genderClass = h.gender === "male" ? "gender-male" : h.gender === "female" ? "gender-female" : "gender-any";
             const genderLabel = h.gender === "male" ? "男性" : h.gender === "female" ? "女性" : "男女";
-            const addressLine = [h.postalCode ? `〒${h.postalCode}` : "", h.address || ""].filter(Boolean).join(" ");
+            const addressLine = [h.postalCode ? `〒${h.postalCode}` : "", h.address || "", h.buildingName || ""].filter(Boolean).join(" ");
             return `
               <div class="home-row">
                 <div class="home-row-top">
@@ -953,6 +953,7 @@
               </div>
             </div>
             <input type="text" data-field="address" data-id="${h.id}" value="${escapeHtml(h.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
+            <input type="text" data-field="buildingName" data-id="${h.id}" value="${escapeHtml(h.buildingName || "")}" placeholder="建物名（ビル・マンションなど）　例：〇〇マンション201" style="margin-top:8px;">
             <label>備考欄</label>
             <textarea data-field="notes" data-id="${h.id}" placeholder="気になる点など自由に入力">${escapeHtml(h.notes || "")}</textarea>
             <div class="post-edit-row">
@@ -1006,6 +1007,7 @@
             </div>
           </div>
           <input type="text" data-field="address" data-id="${d.tempId}" value="${escapeHtml(d.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
+          <input type="text" data-field="buildingName" data-id="${d.tempId}" value="${escapeHtml(d.buildingName || "")}" placeholder="建物名（ビル・マンションなど）　例：〇〇マンション201" style="margin-top:8px;">
           <label>備考欄</label>
           <textarea data-field="notes" data-id="${d.tempId}" placeholder="気になる点など自由に入力">${escapeHtml(d.notes || "")}</textarea>
           <div class="post-edit-row">
@@ -1213,7 +1215,7 @@
     }
 
     if(action === "add-home"){
-      draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "", homeType: "" });
+      draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "", homeType: "", buildingName: "" });
       preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
       return;
     }
@@ -1228,9 +1230,10 @@
       const notes = item.querySelector("[data-field='notes']").value.trim();
       const postalCode = item.querySelector("[data-field='postalCode']").value.trim();
       const address = item.querySelector("[data-field='address']").value.trim();
+      const buildingName = item.querySelector("[data-field='buildingName']").value.trim();
       const draft = draftHomes.find(d=>d.tempId === id);
       if(!draft) return;
-      const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address, homeType };
+      const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address, homeType, buildingName };
       data.homes.push(newHome);
       draftHomes = draftHomes.filter(d=>d.tempId !== id);
       openEditHomeIds.add(newHome.id);
@@ -1267,11 +1270,12 @@
       home.notes = item.querySelector("[data-field='notes']").value.trim();
       home.postalCode = item.querySelector("[data-field='postalCode']").value.trim();
       home.address = item.querySelector("[data-field='address']").value.trim();
+      home.buildingName = item.querySelector("[data-field='buildingName']").value.trim();
       touchCompanyUpdated(home.companyId);
       saveLocalCache();
       preserveScrollAnchoredTo(`.company-block[data-company-id="${home.companyId}"]`, ()=>{ renderEdit(); renderTop(); });
       showToast("保存しました");
-      postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address, homeType: home.homeType})
+      postToGas({action:"updateHome", id: home.id, companyId: home.companyId, name: home.name, gender: home.gender, capacity: home.capacity, count: home.count, notes: home.notes, postalCode: home.postalCode, address: home.address, homeType: home.homeType, buildingName: home.buildingName})
         .then(()=> setTimeout(()=>refreshFromSheet(true), 1200));
       return;
     }
