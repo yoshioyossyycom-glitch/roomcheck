@@ -616,7 +616,7 @@
       if(removedOnSync.length > 0){
         removedOnSync.forEach(p=> postToGas({action:"deletePost", id:p.id}));
       }
-      setConnStatus("ok", "スプレッドシートと連携中");
+      setConnStatus("ok", "データベースと連携中");
       renderCurrentScreen();
     }).catch(err=>{
       setConnStatus("err", "接続に失敗しました（キャッシュ表示中）");
