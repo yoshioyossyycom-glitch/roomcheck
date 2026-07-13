@@ -213,15 +213,30 @@
   .btn:active{opacity:.85; transform:scale(.99);}
   .btn-outline{background:#fff; color:var(--green-deep); border:2px solid var(--green); box-shadow:none;}
   .home-edit-item{
-    border:1.5px solid var(--line); border-radius:14px; padding:13px; margin-top:12px; position:relative; background:#FBFCF8;
+    border:1.5px solid var(--line); border-radius:14px; margin-top:12px; position:relative; background:#FBFCF8;
+    overflow:hidden;
   }
   .home-edit-item .del-x{
-    position:absolute; top:9px; right:11px; color:#C4C8BE; font-size:18px; cursor:pointer; line-height:1;
+    position:absolute; top:9px; right:11px; color:#C4C8BE; font-size:18px; cursor:pointer; line-height:1; z-index:2;
   }
   .small-gray{font-size:11px; color:#A7ABA0; margin-top:4px;}
   .home-edit-item.draft-item{
-    border:2px dashed var(--orange); background:var(--orange-pale);
+    border:2px dashed var(--orange); background:var(--orange-pale); padding:13px;
   }
+  .home-edit-item[data-contact-id]{ padding:13px; }
+  .home-edit-summary{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:13px 34px 13px 13px; cursor:pointer;
+  }
+  .home-edit-summary-text{display:flex; flex-direction:column; gap:5px; min-width:0;}
+  .home-edit-summary-badges{display:flex; gap:6px; flex-wrap:wrap;}
+  .home-edit-summary-name{font-weight:700; font-size:14px; color:var(--textmain); overflow-wrap:anywhere;}
+  .home-edit-item .chevron-edit{margin-left:auto; flex-shrink:0;}
+  .home-edit-item.open .chevron-edit{transform:rotate(90deg);}
+  .home-edit-detail{
+    display:none; padding:0 13px 13px; border-top:1px solid var(--line);
+  }
+  .home-edit-item.open .home-edit-detail{display:block; padding-top:13px;}
 
   .post-edit-row{
     display:flex; justify-content:flex-end; gap:8px; margin-top:10px;
@@ -389,6 +404,7 @@
   let data = { companies: [], homes: [], posts: [] };
   let openCompanyIds = new Set();
   let openEditCompanyIds = new Set();
+  let openEditHomeIds = new Set(); // 編集画面のホーム項目の開閉状態（デフォルト全て閉）
   let openEditPostIds = new Set(); // 編集中の投稿ID
   let draftHomes = []; // 登録ボタンを押すまで保存されない新規ホームの仮データ
   let sortMode = localStorage.getItem("gh_sort_mode") || "alpha";
@@ -694,7 +710,7 @@
                       <span class="gender-badge ${genderClass}">${genderLabel}</span>
                       ${h.homeType ? `<span class="type-badge">${escapeHtml(h.homeType)}</span>` : ""}
                     </div>
-                    <div class="home-name">↳${escapeHtml(h.name)}</div>
+                    <div class="home-name">${escapeHtml(h.name)}</div>
                   </div>
                   <div>
                     <span class="status-pill ${full ? "status-full" : "status-vacant"}">${full ? "満室" : "空室"}</span>
@@ -881,55 +897,71 @@
     wrap.innerHTML = sortedCompanies.map((c, companyIndex)=>{
       const homes = data.homes.filter(h=>String(h.companyId) === String(c.id));
       const isOpen = openEditCompanyIds.has(c.id);
-      const homesHtml = homes.map(h=>`
-        <div class="home-edit-item" data-home-id="${h.id}">
-          <span class="del-x" data-action="del-home" data-id="${h.id}">✕</span>
-          <div class="row2">
-            <div>
-              <label>ホーム名</label>
-              <input type="text" data-field="name" data-id="${h.id}" value="${escapeHtml(h.name)}">
+      const homesHtml = homes.map(h=>{
+        const isHomeOpen = openEditHomeIds.has(h.id);
+        const genderLabel = h.gender === "male" ? "男性" : h.gender === "female" ? "女性" : "男女";
+        return `
+        <div class="home-edit-item ${isHomeOpen ? "open" : ""}" data-home-id="${h.id}">
+          <div class="home-edit-summary" data-action="toggle-home-edit" data-id="${h.id}">
+            <div class="home-edit-summary-text">
+              <span class="home-edit-summary-badges">
+                <span class="gender-badge ${h.gender==="male"?"gender-male":h.gender==="female"?"gender-female":"gender-any"}">${genderLabel}</span>
+                ${h.homeType ? `<span class="type-badge">${escapeHtml(h.homeType)}</span>` : ""}
+              </span>
+              <span class="home-edit-summary-name">${escapeHtml(h.name) || "（名称未設定）"}</span>
             </div>
-            <div>
-              <label>性別</label>
-              <select data-field="gender" data-id="${h.id}">
-                <option value="male" ${h.gender==="male"?"selected":""}>男性</option>
-                <option value="female" ${h.gender==="female"?"selected":""}>女性</option>
-                <option value="any" ${h.gender==="any"?"selected":""}>男女</option>
-              </select>
-            </div>
+            <span class="chevron-edit">▶</span>
           </div>
-          <label>種類</label>
-          <select data-field="homeType" data-id="${h.id}">
-            <option value="">未選択</option>
-            <option value="包括型" ${h.homeType==="包括型"?"selected":""}>包括型</option>
-            <option value="日中支援型" ${h.homeType==="日中支援型"?"selected":""}>日中支援型</option>
-            <option value="外部サービス型" ${h.homeType==="外部サービス型"?"selected":""}>外部サービス型</option>
-            <option value="サテライト" ${h.homeType==="サテライト"?"selected":""}>サテライト</option>
-          </select>
-          <div class="row2">
-            <div>
-              <label>定員</label>
-              <input type="number" min="0" data-field="capacity" data-id="${h.id}" value="${h.capacity}">
+          <div class="home-edit-detail">
+            <span class="del-x" data-action="del-home" data-id="${h.id}">✕</span>
+            <div class="row2">
+              <div>
+                <label>ホーム名</label>
+                <input type="text" data-field="name" data-id="${h.id}" value="${escapeHtml(h.name)}">
+              </div>
+              <div>
+                <label>性別</label>
+                <select data-field="gender" data-id="${h.id}">
+                  <option value="male" ${h.gender==="male"?"selected":""}>男性</option>
+                  <option value="female" ${h.gender==="female"?"selected":""}>女性</option>
+                  <option value="any" ${h.gender==="any"?"selected":""}>男女</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label>現在の人数</label>
-              <input type="number" min="0" data-field="count" data-id="${h.id}" value="${h.count}">
+            <label>種類</label>
+            <select data-field="homeType" data-id="${h.id}">
+              <option value="">未選択</option>
+              <option value="包括型" ${h.homeType==="包括型"?"selected":""}>包括型</option>
+              <option value="日中支援型" ${h.homeType==="日中支援型"?"selected":""}>日中支援型</option>
+              <option value="外部サービス型" ${h.homeType==="外部サービス型"?"selected":""}>外部サービス型</option>
+              <option value="サテライト" ${h.homeType==="サテライト"?"selected":""}>サテライト</option>
+            </select>
+            <div class="row2">
+              <div>
+                <label>定員</label>
+                <input type="number" min="0" data-field="capacity" data-id="${h.id}" value="${h.capacity}">
+              </div>
+              <div>
+                <label>現在の人数</label>
+                <input type="number" min="0" data-field="count" data-id="${h.id}" value="${h.count}">
+              </div>
             </div>
-          </div>
-          <label>住所（任意）</label>
-          <div class="row2">
-            <div>
-              <input type="text" data-field="postalCode" data-id="${h.id}" value="${escapeHtml(h.postalCode || "")}" placeholder="郵便番号　例：340-0000" inputmode="numeric">
+            <label>住所（任意）</label>
+            <div class="row2">
+              <div>
+                <input type="text" data-field="postalCode" data-id="${h.id}" value="${escapeHtml(h.postalCode || "")}" placeholder="郵便番号　例：340-0000" inputmode="numeric">
+              </div>
             </div>
-          </div>
-          <input type="text" data-field="address" data-id="${h.id}" value="${escapeHtml(h.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
-          <label>備考欄</label>
-          <textarea data-field="notes" data-id="${h.id}" placeholder="気になる点など自由に入力">${escapeHtml(h.notes || "")}</textarea>
-          <div class="post-edit-row">
-            <button class="icon-btn" data-action="save-home" data-id="${h.id}">保存</button>
+            <input type="text" data-field="address" data-id="${h.id}" value="${escapeHtml(h.address || "")}" placeholder="住所　例：埼玉県草加市〇〇1-2-3" style="margin-top:8px;">
+            <label>備考欄</label>
+            <textarea data-field="notes" data-id="${h.id}" placeholder="気になる点など自由に入力">${escapeHtml(h.notes || "")}</textarea>
+            <div class="post-edit-row">
+              <button class="icon-btn" data-action="save-home" data-id="${h.id}">保存</button>
+            </div>
           </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
 
       const drafts = draftHomes.filter(d=>String(d.companyId) === String(c.id));
       const draftsHtml = drafts.map(d=>`
@@ -1167,6 +1199,19 @@
       return;
     }
 
+    if(action === "toggle-home-edit"){
+      const item = btn.closest(".home-edit-item");
+      const opening = !item.classList.contains("open");
+      if(opening){
+        openEditHomeIds.add(id);
+        item.classList.add("open");
+      } else {
+        openEditHomeIds.delete(id);
+        item.classList.remove("open");
+      }
+      return;
+    }
+
     if(action === "add-home"){
       draftHomes.push({ tempId: uid(), companyId: id, name: "", gender: "male", capacity: 1, count: 0, notes: "", postalCode: "", address: "", homeType: "" });
       preserveScrollAnchoredTo(`.company-block[data-company-id="${id}"]`, renderEdit);
@@ -1188,6 +1233,7 @@
       const newHome = { id: uid(), companyId: draft.companyId, name, gender, capacity, count, notes, postalCode, address, homeType };
       data.homes.push(newHome);
       draftHomes = draftHomes.filter(d=>d.tempId !== id);
+      openEditHomeIds.add(newHome.id);
       touchCompanyUpdated(draft.companyId);
       saveLocalCache();
       preserveScrollAnchoredTo(`.company-block[data-company-id="${draft.companyId}"]`, ()=>{ renderEdit(); renderTop(); });
