@@ -322,9 +322,19 @@
     box-shadow:0 3px 10px rgba(31,138,79,.4);
   }
   .toast.show{opacity:1;}
+
+#authGate{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#E8F7EE,#FFF3E8);display:flex;align-items:center;justify-content:center;padding:24px;font-family:"M PLUS Rounded 1c",sans-serif}
+#authGate .box{background:#fff;border-radius:24px;padding:28px 22px;width:100%;max-width:340px;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:center}
+#authGate h2{margin:0 0 6px;font-size:20px;color:#2FA966}
+#authGate p{margin:0 0 16px;font-size:13px;color:#777}
+#authGate input{width:100%;box-sizing:border-box;padding:13px 16px;font-size:16px;border:2px solid #cfe9db;border-radius:999px;outline:none;text-align:center;font-family:inherit}
+#authGate input:focus{border-color:#2FA966}
+#authGate button{margin-top:14px;width:100%;padding:13px;font-size:16px;font-weight:700;color:#fff;background:#FF8A3B;border:none;border-radius:999px;font-family:inherit}
+#authErr{color:#e03b3b;font-size:13px;min-height:18px;margin-top:10px}
 </style>
 </head>
 <body>
+<div id="authGate" style="display:none"><div class="box"><h2>🏠 空室情報</h2><p>パスワードを入力してください</p><input type="password" id="authInput" autocomplete="current-password" placeholder="パスワード"><button id="authBtn" type="button">開く</button><div id="authErr"></div></div></div>
 
 <header>
   <h1>🏡 グループホーム空室情報</h1>
@@ -1331,12 +1341,55 @@
   });
 
   // ---------- 初期表示 ----------
-  loadLocalCache();
-  applyGasUrlUiState();
-  renderTop();
-  if(gasUrl){
-    refreshFromSheet(false);
+  function startApp(){
+    loadLocalCache();
+    applyGasUrlUiState();
+    renderTop();
+    if(gasUrl){
+      refreshFromSheet(false);
+    }
   }
+
+  // ---------- パスワード認証 ----------
+  const AUTH_HASH = "25ced2db1f95d7a1e46874789074146aa3fa3515636e554f2d754ebaa9ac874b";
+  const AUTH_KEY = "gh_auth_ok_v1";
+  async function sha256Hex(str){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  function isAuthed(){
+    try{ return localStorage.getItem(AUTH_KEY) === AUTH_HASH; }catch(e){ return false; }
+  }
+  function setupAuth(){
+    const gate = document.getElementById("authGate");
+    const input = document.getElementById("authInput");
+    const btn = document.getElementById("authBtn");
+    const err = document.getElementById("authErr");
+    gate.style.display = "flex";
+    async function submit(){
+      const v = input.value;
+      let ok = false;
+      try{
+        ok = (await sha256Hex(v)) === AUTH_HASH;
+      }catch(e){
+        ok = (v === "soka1234");
+      }
+      if(ok){
+        try{ localStorage.setItem(AUTH_KEY, AUTH_HASH); }catch(e){}
+        gate.style.display = "none";
+        startApp();
+      }else{
+        err.textContent = "パスワードが違います";
+        input.value = "";
+        input.focus();
+      }
+    }
+    btn.addEventListener("click", submit);
+    input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); submit(); } });
+    setTimeout(()=>input.focus(), 100);
+  }
+
+  if(isAuthed()){ startApp(); } else { setupAuth(); }
 })();
 </script>
 
